@@ -6,7 +6,7 @@ package incorruptible
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 )
 
 const (
@@ -21,13 +21,13 @@ const (
 // see: https://github.com/SimonWaldherr/golang-benchmarks#random
 //
 //nolint:gosec // strong random generator not required for padding
-func (s *Serializer) appendPadding(buf []byte) []byte {
+func (s *Serializer) appendPadding(buf []byte, randGen *rand.ChaCha8) []byte {
 	// computes the number of trailing bytes to fill the padding
 	trailing := len(buf) % paddingStep
 	adding := paddingStep - trailing - 1 // -1 = last byte encodes the padding size (minus one)
 
 	// adds more padding bytes
-	random := rand.Int63() & (paddingMaxSize/paddingStep - 1)
+	random := randGen.Uint64() & (paddingMaxSize/paddingStep - 1)
 	adding += paddingStep * int(random)
 
 	if adding > 255 {
@@ -42,7 +42,7 @@ func (s *Serializer) appendPadding(buf []byte) []byte {
 
 	// increase the buffer length
 	buf = buf[:newSize]
-	_, err := rand.Read(buf[oldSize:newSize])
+	_, err := randGen.Read(buf[oldSize:newSize])
 	if err != nil {
 		log.Panic("appendPadding rand.Read", err)
 	}

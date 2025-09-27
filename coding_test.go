@@ -6,6 +6,7 @@ package incorruptible_test
 
 import (
 	"net"
+	"net/url"
 	"reflect"
 	"testing"
 
@@ -23,7 +24,15 @@ func TestUnmarshal(t *testing.T) {
 
 			c.tv.ShortenIP4Length()
 
-			b, err := incorruptible.Marshal(c.tv, c.magic)
+			u, err := url.Parse("http://host:8080/path/url")
+			if err != nil {
+				t.Error("url.Parse() error", err)
+				return
+			}
+			aesKey := []byte("1234567890" + "123456") // 16 bytes = AES 128-bit key
+			incorr := incorruptible.New(nil, []*url.URL{u}, aesKey, "session", 0, true)
+
+			b, err := incorr.Marshal(c.tv, c.magic)
 			if (err == nil) == c.wantErr {
 				t.Errorf("Marshal() error = %v, wantErr %v", err, c.wantErr)
 				return

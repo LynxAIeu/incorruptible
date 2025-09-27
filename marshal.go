@@ -6,7 +6,7 @@ package incorruptible
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 
 	"github.com/klauspost/compress/s2"
 )
@@ -24,7 +24,7 @@ type Serializer struct {
 	compressed   bool
 }
 
-func newSerializer(tv TValues) Serializer {
+func newSerializer(tv TValues, randGen *rand.ChaCha8) Serializer {
 	var s Serializer
 
 	s.ipLength = len(tv.IP) // can be 0, 4 or 16
@@ -38,7 +38,7 @@ func newSerializer(tv TValues) Serializer {
 
 	s.payloadSize = ExpirySize + s.ipLength + s.valTotalSize
 
-	s.compressed = doesCompress(s.payloadSize)
+	s.compressed = doesCompress(s.payloadSize, randGen)
 
 	return s
 }
@@ -51,12 +51,12 @@ func newSerializer(tv TValues) Serializer {
 // see: https://github.com/SimonWaldherr/golang-benchmarks#random
 //
 //nolint:gosec // strong random generator not required here
-func doesCompress(payloadSize int) bool {
+func doesCompress(payloadSize int, randGen *rand.ChaCha8) bool {
 	switch {
 	case payloadSize < sizeMayCompress:
 		return false
 	case payloadSize < sizeMustCompress:
-		zeroOrOne := (rand.Int63() & 1)
+		zeroOrOne := (randGen.Uint64() & 1)
 		return (zeroOrOne == 0)
 	default:
 		return true
@@ -67,8 +67,8 @@ func doesCompress(payloadSize int) bool {
 // The format starts with a magic code (2 bytes),
 // followed by the expiry time, the client IP, the user-defined values,
 // and ends with random salt as padding for a final size aligned on 32 bits.
-func Marshal(tv TValues, magic uint8) ([]byte, error) {
-	s := newSerializer(tv)
+func (incorr *Incorruptible) Marshal(tv TValues, magic uint8) ([]byte, error) {
+	s := newSerializer(tv, incorr.rand)
 
 	b, err := s.putHeaderExpiryIP(magic, tv)
 	if err != nil {
@@ -93,7 +93,7 @@ func Marshal(tv TValues, magic uint8) ([]byte, error) {
 	}
 
 	if EnablePadding {
-		b = s.appendPadding(b)
+		b = s.appendPadding(b, incorr.rand)
 	}
 
 	return b, nil

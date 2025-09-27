@@ -7,8 +7,7 @@ package incorruptible
 import (
 	"crypto/cipher"
 	crand "crypto/rand"
-	"encoding/binary"
-	"math/rand"
+	"math/rand/v2"
 	"net/http"
 	"net/url"
 	"path"
@@ -28,6 +27,7 @@ type Incorruptible struct {
 	cipher   cipher.AEAD
 	magic    byte
 	baseN    *baseN.Encoding
+	rand     *rand.ChaCha8
 }
 
 const (
@@ -36,7 +36,7 @@ const (
 	prefixScheme = authScheme + tokenScheme
 )
 
-// New creates a new Incorruptible. The order of the parameters are consistent with garcon.NewJWTChecker (see Teal-Finance/Garcon).
+// New creates a new Incorruptible. The order of the parameters are consistent with garcon.NewJWTChecker.
 // The Garcon middleware constructors use a garcon.Writer as first parameter.
 // Please share your thoughts/feedback, we can still change that.
 func New(writeErr WriteErr, urls []*url.URL, secretKey []byte, cookieName string, maxAge int, setIP bool) *Incorruptible {
@@ -52,13 +52,24 @@ func New(writeErr WriteErr, urls []*url.URL, secretKey []byte, cookieName string
 
 	cipher := NewCipher(secretKey)
 
-	// initialize the random generator with a reproducible secret seed
-	resetRandomGenerator(secretKey)
-	magic := magicCode()
-	encodingAlphabet := shuffle(noSpaceDoubleQuoteSemicolon)
+	// reproducible random generator using the secret as seed
+	var seed [32]byte
+	copy(seed[:], secretKey)
+	randGen := rand.NewChaCha8(seed)
+	magic := byte(randGen.Uint64())
+	// randomize order of the input string.
+	runes := []rune(noSpaceDoubleQuoteSemicolon)
+	for i := uint(len(runes) - 1); i > 0; i-- {
+		j := uint(randGen.Uint64()) % (i + 1)
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	encodingAlphabet := string(runes)
 
 	// reset the random generator with a strong random seed
-	resetRandomGenerator(nil)
+	_, err := crand.Read(seed[:])
+	if err != nil {
+		log.Panic("crypto/rand.Read err=", err)
+	}
 
 	incorr := Incorruptible{
 		writeErr: writeErr,
@@ -67,6 +78,7 @@ func New(writeErr WriteErr, urls []*url.URL, secretKey []byte, cookieName string
 		cipher:   cipher,
 		magic:    magic,
 		baseN:    baseN.NewEncoding(encodingAlphabet),
+		rand:     rand.NewChaCha8(seed),
 	}
 
 	incorr.addMinimalistToken()
@@ -92,44 +104,6 @@ func (incorr *Incorruptible) addMinimalistToken() {
 
 	// insert this generated token in the cookie
 	incorr.cookie.Value = tokenScheme + token
-}
-
-func (incorr *Incorruptible) useMinimalistToken() bool {
-	return (incorr.cookie.MaxAge <= 0) && (!incorr.SetIP)
-}
-
-// equalMinimalistToken compares with the default token.
-func (incorr *Incorruptible) equalMinimalistToken(base91 string) bool {
-	const schemeSize = len(tokenScheme) // to skip the token scheme
-	return incorr.useMinimalistToken() && (base91 == incorr.cookie.Value[schemeSize:])
-}
-
-// resetRandomGenerator resets the "math.rand" generator from 16 bytes.
-// This function is used to initialize the random generator with a reproducible secret seed.
-// If no bytes are passed, resetRandomGenerator resets the "math.rand" generator with a strong random seed.
-func resetRandomGenerator(bytes []byte) {
-	if len(bytes) == 0 {
-		bytes = make([]byte, 16)
-		_, err := crand.Read(bytes)
-		if err != nil {
-			log.Panic(err)
-		}
-	}
-	seed := binary.BigEndian.Uint64(bytes)
-	seed += binary.BigEndian.Uint64(bytes[8:])
-	rand.New(rand.NewSource(int64(seed)))
-}
-
-func magicCode() byte {
-	//nolint:gosec // Reproduce MagicCode from same secret seed
-	return byte(rand.Int63())
-}
-
-// shuffle randomizes order of the input string.
-func shuffle(s string) string {
-	r := []rune(s)
-	rand.Shuffle(len(r), func(i, j int) { r[i], r[j] = r[j], r[i] })
-	return string(r)
 }
 
 // NewCookie creates a new cookie based on default values.
@@ -223,6 +197,16 @@ const (
 	HTTP  = "http"
 	HTTPS = "https"
 )
+
+func (incorr *Incorruptible) useMinimalistToken() bool {
+	return (incorr.cookie.MaxAge <= 0) && (!incorr.SetIP)
+}
+
+// equalMinimalistToken compares with the default token.
+func (incorr *Incorruptible) equalMinimalistToken(base91 string) bool {
+	const schemeSize = len(tokenScheme) // to skip the token scheme
+	return incorr.useMinimalistToken() && (base91 == incorr.cookie.Value[schemeSize:])
+}
 
 //nolint:nonamedreturns // we want to document the returned values.
 func extractMainDomain(u *url.URL) (secure bool, dns, dir string) {

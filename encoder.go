@@ -34,13 +34,13 @@ const (
 func (incorr *Incorruptible) Encode(tv TValues) (string, error) {
 	printV("Encode Marshal", tv, nil)
 
-	plaintext, err := Marshal(tv, incorr.magic)
+	plaintext, err := incorr.Marshal(tv, incorr.magic)
 	if err != nil {
 		return "", err
 	}
 	printB("Encode Encrypt plaintext", plaintext)
 
-	nonceCiphertextAndTag := Encrypt(incorr.cipher, plaintext)
+	nonceCiphertextAndTag := incorr.Encrypt(incorr.cipher, plaintext)
 	printB("Encode EncodeToString ciphertext", nonceCiphertextAndTag)
 
 	str := incorr.baseN.EncodeToString(nonceCiphertextAndTag)
