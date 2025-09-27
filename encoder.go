@@ -1,6 +1,5 @@
-// Copyright 2022 Teal.Finance/incorruptible contributors
-// This file is part of Teal.Finance/incorruptible
-// a tiny+secured cookie token licensed under the MIT License.
+// Copyright 2022-2025 Incorruptible contributors
+// Incorruptible is a tiny+secured cookie token licensed under the MIT License.
 // SPDX-License-Identifier: MIT
 
 // Package incorruptible provides a safer, shorter, faster

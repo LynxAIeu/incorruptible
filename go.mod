@@ -1,11 +1,11 @@
-module github.com/teal-finance/incorruptible
+module github.com/LM4eu/incorruptible
 
 go 1.22
 
 require (
+	github.com/LM4eu/emo v0.0.0-20250927010905-4655469361e2
 	github.com/klauspost/compress v1.17.9
 	github.com/mtraver/base91 v1.0.0
-	github.com/teal-finance/emo v0.0.0-20240610104517-58d37361ce25
 	golang.org/x/crypto v0.25.0
 )
 

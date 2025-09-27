@@ -1,6 +1,5 @@
-// Copyright 2022 Teal.Finance/incorruptible contributors
-// This file is part of Teal.Finance/incorruptible
-// a tiny+secured cookie token licensed under the MIT License.
+// Copyright 2022-2025 Incorruptible contributors
+// Incorruptible is a tiny+secured cookie token licensed under the MIT License.
 // SPDX-License-Identifier: MIT
 
 package incorruptible
@@ -15,10 +14,8 @@ import (
 	"path"
 	"time"
 
-	// baseN "github.com/teal-finance/BaseXX/base92" // use another package with same interface.
+	"github.com/LM4eu/emo"
 	baseN "github.com/mtraver/base91"
-
-	"github.com/teal-finance/emo"
 )
 
 //nolint:gochecknoglobals // global logger
