@@ -1,6 +1,6 @@
 module github.com/LM4eu/incorruptible
 
-go 1.22
+go 1.25.1
 
 require (
 	github.com/LM4eu/emo v0.0.0-20250927010905-4655469361e2
