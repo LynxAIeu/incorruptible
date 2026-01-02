@@ -1,9 +1,9 @@
-module github.com/LM4eu/incorruptible
+module github.com/LynxAIeu/incorruptible
 
-go 1.25.1
+go 1.25.5
 
 require (
-	github.com/LM4eu/emo v0.0.0-20250927010905-4655469361e2
+	github.com/LynxAIeu/emo v0.0.0-20250927010905-4655469361e2
 	github.com/klauspost/compress v1.17.9
 	github.com/mtraver/base91 v1.0.0
 	golang.org/x/crypto v0.25.0

@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/LM4eu/incorruptible"
+	"github.com/LynxAIeu/incorruptible"
 )
 
 func TestUnmarshal(t *testing.T) {

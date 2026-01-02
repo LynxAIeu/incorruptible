@@ -13,7 +13,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/LM4eu/emo"
+	"github.com/LynxAIeu/emo"
 	baseN "github.com/mtraver/base91"
 )
 
